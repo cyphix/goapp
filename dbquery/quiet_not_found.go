@@ -8,10 +8,9 @@ import (
 	"strings"
 	"time"
 
+	logg "github.com/cyphix/gologg"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-
-	logg "github.com/cyphix/gologg"
 )
 
 var queryLogger = logg.Ctx("dbquery", "quiet_not_found")

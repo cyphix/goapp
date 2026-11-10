@@ -2,12 +2,13 @@ package devseed
 
 import (
 	"context"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/cyphix/goapp/config"
-	"gorm.io/gorm"
 	"net"
 	"strings"
 	"testing"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/cyphix/goapp/config"
+	"gorm.io/gorm"
 )
 
 func TestRunRejectsIncompleteUser(t *testing.T) {

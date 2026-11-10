@@ -1,8 +1,9 @@
 package migratecmd
 
 import (
-	"github.com/cyphix/goapp/config"
 	"testing"
+
+	"github.com/cyphix/goapp/config"
 )
 
 func TestCommand(t *testing.T) {

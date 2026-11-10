@@ -2,11 +2,12 @@ package redisconn
 
 import (
 	"context"
-	"github.com/alicebob/miniredis/v2"
-	"github.com/cyphix/goapp/config"
 	"net"
 	"strings"
 	"testing"
+
+	"github.com/alicebob/miniredis/v2"
+	"github.com/cyphix/goapp/config"
 )
 
 func TestOpenRedis(t *testing.T) {

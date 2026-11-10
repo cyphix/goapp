@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"gorm.io/gorm"
 	"io/fs"
 	"os"
 	"strconv"
@@ -13,8 +12,8 @@ import (
 	"github.com/cyphix/goapp/config"
 	"github.com/cyphix/goapp/database"
 	"github.com/cyphix/goapp/migrate"
-
 	logg "github.com/cyphix/gologg"
+	"gorm.io/gorm"
 )
 
 type Configuration interface {

@@ -5,10 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cyphix/goapp/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
-	"github.com/cyphix/goapp/config"
 )
 
 // Open builds a DSN from cfg and opens the configured database.

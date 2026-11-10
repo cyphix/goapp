@@ -3,10 +3,11 @@
 package testdb_test
 
 import (
-	"github.com/cyphix/goapp/internal/testfixtures"
-	"github.com/cyphix/goapp/testdb"
 	"os"
 	"testing"
+
+	"github.com/cyphix/goapp/internal/testfixtures"
+	"github.com/cyphix/goapp/testdb"
 )
 
 func TestMain(m *testing.M) { os.Exit(testdb.Main(m, testfixtures.FS)) }

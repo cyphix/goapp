@@ -4,10 +4,11 @@ package config
 import (
 	"errors"
 	"fmt"
-	"github.com/caarlos0/env/v11"
-	"github.com/joho/godotenv"
 	"os"
 	"strings"
+
+	"github.com/caarlos0/env/v11"
+	"github.com/joho/godotenv"
 )
 
 // Load parses cfg in place. The caller owns defaults, warnings and caching.

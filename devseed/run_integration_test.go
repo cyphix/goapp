@@ -5,6 +5,10 @@ package devseed_test
 import (
 	"context"
 	"errors"
+	"net"
+	"os"
+	"testing"
+
 	"github.com/alicebob/miniredis/v2"
 	"github.com/cyphix/goapp/config"
 	"github.com/cyphix/goapp/devseed"
@@ -12,9 +16,6 @@ import (
 	"github.com/cyphix/goapp/testdb"
 	"github.com/cyphix/goauth"
 	"gorm.io/gorm"
-	"net"
-	"os"
-	"testing"
 )
 
 func TestMain(m *testing.M) { os.Exit(testdb.Main(m, testfixtures.FS)) }

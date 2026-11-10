@@ -2,10 +2,9 @@ package authsetup
 
 import (
 	"fmt"
-	"github.com/cyphix/goapp/httpx"
 
 	"github.com/cyphix/goapp/config"
-
+	"github.com/cyphix/goapp/httpx"
 	"github.com/cyphix/goauth"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
