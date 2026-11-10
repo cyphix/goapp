@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"testing"
 	"testing/fstest"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestMissingDatabase(t *testing.T) {
@@ -14,11 +16,7 @@ func TestMissingDatabase(t *testing.T) {
 		func(db *sql.DB) error { return runner.Force(db, 1) },
 		func(db *sql.DB) error { _, _, err := runner.Status(db); return err },
 	} {
-		if err := run(nil); err == nil {
-			t.Fatal("missing database accepted")
-		}
+		require.Error(t, run(nil), "missing database accepted")
 	}
-	if err := runner.Down(nil, 0); err == nil || err.Error() != "migration steps must be positive" {
-		t.Fatal(err)
-	}
+	require.EqualError(t, runner.Down(nil, 0), "migration steps must be positive")
 }

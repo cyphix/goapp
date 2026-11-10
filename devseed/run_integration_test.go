@@ -15,6 +15,7 @@ import (
 	"github.com/cyphix/goapp/internal/testfixtures"
 	"github.com/cyphix/goapp/testdb"
 	"github.com/cyphix/goauth"
+	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 )
 
@@ -34,9 +35,7 @@ func TestRunLifecycle(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := miniredis.RunT(t)
 			host, port, err := net.SplitHostPort(server.Addr())
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 			cfg := &config.Shared{}
 			cfg.Server.Env = "development"
 			cfg.Redis = config.RedisConfig{Host: host, Port: port}
@@ -49,13 +48,11 @@ func TestRunLifecycle(t *testing.T) {
 			if tc.seed {
 				hook = func(got context.Context, gotDB *gorm.DB) error {
 					called = true
-					if got != ctx || gotDB != db {
-						t.Fatal("hook arguments changed")
-					}
+					require.Same(t, ctx, got)
+					require.Same(t, db, gotDB)
 					var count int64
-					if err := db.Model(&goauth.User{}).Where("username = ?", "admin").Count(&count).Error; err != nil || count != 1 {
-						t.Fatalf("admin not bootstrapped before hook: %d %v", count, err)
-					}
+					require.NoError(t, db.Model(&goauth.User{}).Where("username = ?", "admin").Count(&count).Error)
+					require.Equal(t, int64(1), count)
 					if tc.fail {
 						return wantErr
 					}
@@ -63,23 +60,22 @@ func TestRunLifecycle(t *testing.T) {
 				}
 			}
 			err = devseed.Run(ctx, cfg, db, hook, devseed.Options{User: tc.user})
-			if (tc.fail && !errors.Is(err, wantErr)) || (!tc.fail && err != nil) || called != tc.seed {
-				t.Fatalf("%v called=%v", err, called)
+			if tc.fail {
+				require.ErrorIs(t, err, wantErr)
+			} else {
+				require.NoError(t, err)
 			}
+			require.Equal(t, tc.seed, called)
 			var count int64
-			if err := db.Model(&goauth.User{}).Where("username = ?", "user").Count(&count).Error; err != nil {
-				t.Fatal(err)
-			}
-			if (tc.user == nil && count != 0) || (tc.user != nil && count != 1) {
-				t.Fatalf("optional user count=%d", count)
+			require.NoError(t, db.Model(&goauth.User{}).Where("username = ?", "user").Count(&count).Error)
+			if tc.user == nil {
+				require.Zero(t, count)
+			} else {
+				require.Equal(t, int64(1), count)
 			}
 			pool, err := db.DB()
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err := pool.Ping(); err != nil {
-				t.Fatalf("caller pool closed: %v", err)
-			}
+			require.NoError(t, err)
+			require.NoError(t, pool.Ping(), "caller pool closed")
 		})
 	}
 }

@@ -4,11 +4,11 @@ import (
 	"errors"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"testing/fstest"
 
 	"github.com/cyphix/goapp/config"
+	"github.com/stretchr/testify/require"
 )
 
 type processConfig struct {
@@ -46,13 +46,10 @@ func TestMainFailureLogging(t *testing.T) {
 			cmd.Env = append(os.Environ(), "GOAPP_CLI_TEST="+tc.mode)
 			output, err := cmd.CombinedOutput()
 			var exit *exec.ExitError
-			if !errors.As(err, &exit) || exit.ExitCode() != 1 {
-				t.Fatalf("exit: %v, %s", err, output)
-			}
+			require.ErrorAs(t, err, &exit, "%s", output)
+			require.Equal(t, 1, exit.ExitCode(), "%s", output)
 			for _, message := range tc.messages {
-				if !strings.Contains(string(output), message) {
-					t.Fatalf("missing %q in %s", message, output)
-				}
+				require.Contains(t, string(output), message)
 			}
 		})
 	}

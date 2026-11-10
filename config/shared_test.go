@@ -2,9 +2,9 @@ package config
 
 import (
 	"os"
-	"reflect"
-	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func resetShared(t *testing.T) {
@@ -21,9 +21,7 @@ func resetShared(t *testing.T) {
 func TestSharedDefaults(t *testing.T) {
 	resetShared(t)
 	cfg, err := loadFixture()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	want := Shared{
 		Server:   ServerConfig{Env: "development", Port: 1323},
 		Log:      LogConfig{Level: "info"},
@@ -31,12 +29,8 @@ func TestSharedDefaults(t *testing.T) {
 		Redis:    RedisConfig{Host: "localhost", Port: "6379"},
 		Auth:     AuthConfig{RPID: "localhost", RPDisplayName: newConfig().Auth.RPDisplayName, Origins: []string{"http://localhost:5173"}, PublicBaseURL: "http://localhost:5173"},
 	}
-	if !reflect.DeepEqual(cfg.Shared, want) {
-		t.Fatalf("shared defaults = %#v, want %#v", cfg.Shared, want)
-	}
-	if len(cfg.Warnings) != 0 {
-		t.Fatalf("warnings = %v", cfg.Warnings)
-	}
+	require.Equal(t, want, cfg.Shared)
+	require.Empty(t, cfg.Warnings)
 }
 
 func TestSharedEnvironmentMapping(t *testing.T) {
@@ -54,9 +48,7 @@ func TestSharedEnvironmentMapping(t *testing.T) {
 		t.Setenv(key, value)
 	}
 	cfg, err := loadFixture()
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	want := Shared{
 		Server:   ServerConfig{Env: "production", Port: 9090, TrustedProxies: "10.0.0.0/8"},
 		Log:      LogConfig{Level: "debug"},
@@ -64,9 +56,7 @@ func TestSharedEnvironmentMapping(t *testing.T) {
 		Redis:    RedisConfig{Host: "cache.example", Port: "6380", Password: "example-cache-password", DB: 2},
 		Auth:     AuthConfig{InitAdminUsername: "example_admin", InitAdminPasswd: "example-admin-password", RPID: "example.com", RPDisplayName: "Example App", Origins: []string{"https://example.com", "https://other.example.com"}, PublicBaseURL: "https://example.com", CookieSecure: true, DevAutoLogin: true},
 	}
-	if !reflect.DeepEqual(cfg.Shared, want) {
-		t.Fatalf("shared environment mapping differs")
-	}
+	require.Equal(t, want, cfg.Shared)
 }
 
 func TestSharedRejectInvalid(t *testing.T) {
@@ -80,9 +70,8 @@ func TestSharedRejectInvalid(t *testing.T) {
 			resetShared(t)
 			t.Setenv(tc.key, tc.value)
 			cfg, err := loadFixture()
-			if err == nil || cfg != nil {
-				t.Fatal("invalid configuration accepted")
-			}
+			require.Error(t, err)
+			require.Nil(t, cfg)
 		})
 	}
 }
@@ -90,33 +79,21 @@ func TestSharedRejectInvalid(t *testing.T) {
 func TestSharedDotEnvAndWarnings(t *testing.T) {
 	t.Run("file and environment precedence", func(t *testing.T) {
 		resetShared(t)
-		if err := os.Unsetenv("LOG_LEVEL"); err != nil {
-			t.Fatal(err)
-		}
-		if err := os.WriteFile(".env", []byte("LOG_LEVEL=debug\nSERVER_PORT=9999\n"), 0600); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, os.Unsetenv("LOG_LEVEL"))
+		require.NoError(t, os.WriteFile(".env", []byte("LOG_LEVEL=debug\nSERVER_PORT=9999\n"), 0600))
 		t.Setenv("SERVER_PORT", "8888")
 		cfg, err := loadFixture()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if cfg.Log.Level != "debug" || cfg.Server.Port != 8888 {
-			t.Fatal("dotenv mapping or precedence differs")
-		}
+		require.NoError(t, err)
+		require.Equal(t, "debug", cfg.Log.Level)
+		require.Equal(t, 8888, cfg.Server.Port)
 	})
 	t.Run("malformed optional file", func(t *testing.T) {
 		resetShared(t)
-		if err := os.WriteFile(".env", []byte("invalid content !"), 0600); err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, os.WriteFile(".env", []byte("invalid content !"), 0600))
 		cfg, err := loadFixture()
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(cfg.Warnings) != 1 || !strings.Contains(cfg.Warnings[0], "could not load .env") {
-			t.Fatalf("warnings=%v", cfg.Warnings)
-		}
+		require.NoError(t, err)
+		require.Len(t, cfg.Warnings, 1)
+		require.Contains(t, cfg.Warnings[0], "could not load .env")
 	})
 }
 
@@ -125,12 +102,9 @@ func TestSharedLegacyNamesAreNotAliases(t *testing.T) {
 	t.Setenv("AUTH_RPID", "legacy.example")
 	t.Setenv("DEV_AUTO_LOGIN", "true")
 	cfg, err := loadFixture()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Auth.RPID != "localhost" || cfg.Auth.DevAutoLogin {
-		t.Fatal("obsolete auth environment names were accepted")
-	}
+	require.NoError(t, err)
+	require.Equal(t, "localhost", cfg.Auth.RPID)
+	require.False(t, cfg.Auth.DevAutoLogin)
 }
 
 type fixture struct {
@@ -160,24 +134,18 @@ func TestAppValidationAndParseErrors(t *testing.T) {
 	var called bool
 	warnings, err := Load(cfg, func(c *fixture) *Shared { return &c.Shared }, func(c *fixture) []string {
 		called = true
-		if c.Label != "custom" {
-			t.Fatalf("app environment not parsed: %q", c.Label)
-		}
+		require.Equal(t, "custom", c.Label)
 		return nil
 	})
-	if err != nil || len(warnings) != 0 || !called {
-		t.Fatalf("%v %v %v", warnings, err, called)
-	}
+	require.NoError(t, err)
+	require.Empty(t, warnings)
+	require.True(t, called)
 	t.Setenv("SERVER_PORT", "invalid")
 	t.Setenv("SERVER_ENV", "staging")
 	_, err = Load(cfg, func(c *fixture) *Shared { return &c.Shared }, func(c *fixture) []string { return []string{"APP_LABEL rejected"} })
-	if err == nil {
-		t.Fatal("invalid app config accepted")
-	}
+	require.Error(t, err)
 	for _, want := range []string{"environment parse error:", "SERVER_ENV", "APP_LABEL rejected"} {
-		if !strings.Contains(err.Error(), want) {
-			t.Fatalf("missing %q in %v", want, err)
-		}
+		require.ErrorContains(t, err, want)
 	}
 }
 func TestLoadMissingInputs(t *testing.T) {
@@ -189,8 +157,7 @@ func TestLoadMissingInputs(t *testing.T) {
 		{newConfig(), nil},
 		{newConfig(), func(c *fixture) *Shared { return nil }},
 	} {
-		if _, err := Load(tc.cfg, tc.shared, nil); err == nil {
-			t.Fatal("missing configuration accepted")
-		}
+		_, err := Load(tc.cfg, tc.shared, nil)
+		require.Error(t, err, "missing configuration accepted")
 	}
 }

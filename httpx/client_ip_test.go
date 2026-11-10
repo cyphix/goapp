@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/require"
 )
 
 func TestClientIPExtractor(t *testing.T) {
@@ -24,15 +25,11 @@ func TestClientIPExtractor(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			extract, err := ClientIPExtractor(tt.trusted)
-			if err != nil {
-				t.Fatalf("ClientIPExtractor(%q): %v", tt.trusted, err)
-			}
+			require.NoError(t, err)
 			req := httptest.NewRequest(http.MethodPost, "/auth/login", nil)
 			req.RemoteAddr = tt.remoteAddr
 			req.Header.Set(echo.HeaderXForwardedFor, "203.0.113.7")
-			if got := extract(req); got != tt.want {
-				t.Fatalf("client IP = %q, want %q", got, tt.want)
-			}
+			require.Equal(t, tt.want, extract(req))
 		})
 	}
 }
@@ -40,14 +37,12 @@ func TestClientIPExtractor(t *testing.T) {
 func TestClientIPExtractorEmpty(t *testing.T) {
 	for _, trusted := range []string{"", " , "} {
 		extract, err := ClientIPExtractor(trusted)
-		if err != nil || extract != nil {
-			t.Fatalf("ClientIPExtractor(%q) = (%v, %v), want (nil, nil)", trusted, extract != nil, err)
-		}
+		require.NoError(t, err)
+		require.Nil(t, extract)
 	}
 }
 
 func TestClientIPExtractorInvalid(t *testing.T) {
-	if _, err := ClientIPExtractor("10.0.0.1"); err == nil {
-		t.Fatal("expected error for a bare IP without a prefix length")
-	}
+	_, err := ClientIPExtractor("10.0.0.1")
+	require.Error(t, err, "expected error for a bare IP without a prefix length")
 }
