@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cyphix/goapp/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCommand(t *testing.T) {
@@ -21,38 +22,27 @@ func TestCommand(t *testing.T) {
 		{[]string{"force", "1"}, "force", 1},
 	} {
 		cmd, n, err := command(tc.args)
-		if err != nil || cmd != tc.cmd || n != tc.n {
-			t.Fatalf("%v = %q, %d, %v", tc.args, cmd, n, err)
-		}
+		require.NoError(t, err, "%v", tc.args)
+		require.Equal(t, tc.cmd, cmd, "%v", tc.args)
+		require.Equal(t, tc.n, n, "%v", tc.args)
 	}
 	for _, args := range [][]string{nil, {"bogus"}, {"up", "1"}, {"down", "0"}, {"down", "-1"}, {"down", "a"}, {"force"}, {"force", "-2"}, {"status", "extra"}} {
-		if _, _, err := command(args); err == nil {
-			t.Fatalf("%v accepted", args)
-		}
+		_, _, err := command(args)
+		require.Error(t, err, "%v accepted", args)
 	}
 }
 
 func TestRunGuards(t *testing.T) {
-	if err := Run(nil, nil, []string{"up"}, nil); err == nil {
-		t.Fatal("missing configuration accepted")
-	}
+	require.Error(t, Run(nil, nil, []string{"up"}, nil), "missing configuration accepted")
 	cfg := &config.Shared{}
-	if err := Run(cfg, nil, []string{"up"}, nil); err == nil {
-		t.Fatal("missing database accepted")
-	}
+	require.Error(t, Run(cfg, nil, []string{"up"}, nil), "missing database accepted")
 	cfg.Database.Type = "postgres"
 	for _, env := range []string{"production", "test", ""} {
 		cfg.Server.Env = env
-		if err := Run(cfg, nil, []string{"reset"}, nil); err == nil || err.Error() != "reset requires SERVER_ENV=development" {
-			t.Fatalf("%s: %v", env, err)
-		}
+		require.EqualError(t, Run(cfg, nil, []string{"reset"}, nil), "reset requires SERVER_ENV=development", env)
 	}
 	cfg.Server.Env = "development"
-	if err := Run(cfg, nil, []string{"reset"}, nil); err == nil || err.Error() != "reset requires AUTH_INIT_ADMIN_USERNAME and AUTH_INIT_ADMIN_PASSWD" {
-		t.Fatalf("missing admin credentials: %v", err)
-	}
+	require.EqualError(t, Run(cfg, nil, []string{"reset"}, nil), "reset requires AUTH_INIT_ADMIN_USERNAME and AUTH_INIT_ADMIN_PASSWD")
 	cfg.Auth.InitAdminUsername, cfg.Auth.InitAdminPasswd = "admin", "test-password"
-	if err := Run(cfg, nil, []string{"reset"}, nil); err == nil || err.Error() != "reset requires a seed function" {
-		t.Fatalf("missing seed hook: %v", err)
-	}
+	require.EqualError(t, Run(cfg, nil, []string{"reset"}, nil), "reset requires a seed function")
 }

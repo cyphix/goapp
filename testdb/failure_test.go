@@ -1,14 +1,13 @@
 package testdb_test
 
 import (
-	"errors"
 	"os"
 	"os/exec"
-	"strings"
 	"testing"
 	"testing/fstest"
 
 	"github.com/cyphix/goapp/testdb"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFailureProcess(t *testing.T) {
@@ -27,8 +26,8 @@ func TestExplicitURLFailure(t *testing.T) {
 		cmd.Env = append(os.Environ(), "GOAPP_TESTDB_FAILURE=1", "TEST_DATABASE_URL="+tc.url)
 		output, err := cmd.CombinedOutput()
 		var exit *exec.ExitError
-		if !errors.As(err, &exit) || exit.ExitCode() != 1 || !strings.Contains(string(output), tc.message) {
-			t.Fatalf("exit: %v, output: %s", err, output)
-		}
+		require.ErrorAs(t, err, &exit, "%s", output)
+		require.Equal(t, 1, exit.ExitCode(), "%s", output)
+		require.Contains(t, string(output), tc.message)
 	}
 }

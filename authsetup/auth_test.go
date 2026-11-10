@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/cyphix/goapp/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthConfig(t *testing.T) {
@@ -15,15 +16,13 @@ func TestAuthConfig(t *testing.T) {
 	for _, env := range []string{"development", "production", "test", ""} {
 		cfg.Server.Env = env
 		got, err := AuthConfig(cfg, nil, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if got.InitAdminUsername != cfg.Auth.InitAdminUsername || got.InitAdminPassword != cfg.Auth.InitAdminPasswd || got.RPID != cfg.Auth.RPID || got.DevAutoLogin != (env == "development") {
-			t.Fatalf("%s: unexpected auth configuration", env)
-		}
+		require.NoError(t, err)
+		require.Equal(t, cfg.Auth.InitAdminUsername, got.InitAdminUsername, env)
+		require.Equal(t, cfg.Auth.InitAdminPasswd, got.InitAdminPassword, env)
+		require.Equal(t, cfg.Auth.RPID, got.RPID, env)
+		require.Equal(t, env == "development", got.DevAutoLogin, env)
 	}
 	cfg.Server.TrustedProxies = "invalid"
-	if _, err := AuthConfig(cfg, nil, nil); err == nil {
-		t.Fatal("invalid proxy accepted")
-	}
+	_, err := AuthConfig(cfg, nil, nil)
+	require.Error(t, err, "invalid proxy accepted")
 }
